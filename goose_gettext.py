@@ -1,21 +1,35 @@
-#from bs4 import BeautifulSoup
 import re
-import sys
 import codecs
 from goose import Goose
+from glob import glob
+import pandas as pd
+from dask import dataframe as dd
+from dask.multiprocessing import get
+import sys
+import os.path
 
-filename=sys.argv[1]
+path = sys.argv[1]
 
-# This is the path that will contain texts
-path = "../random_goose_newstext/"
+files = glob("http*")
 
-with open(filename, "rb") as g:
-    html = g.read()
+all_df = pd.DataFrame(files,columns=["filename"])
 
-g = Goose()
-article = g.extract(raw_html=html)
+def getText(row):
 
-with codecs.open(path + filename, "a", "utf-8") as f:
-    f.write(article.cleaned_text)
+    with open(row.filename, "rb") as f:
+        data = f.read()
 
-print("Finished " + filename)
+    if os.path.isfile(path + row.filename):
+        return row
+
+    g = Goose()
+    article = g.extract(raw_html=data)
+
+    with codecs.open(path + row.filename, "w", "utf-8") as g:
+        g.write(article.cleaned_text)
+
+    #print("Finished : " + row.filename)
+
+    return row
+
+all_df = dd.from_pandas(all_df,npartitions=8).map_partitions(lambda df : df.apply(getText,axis=1),meta=all_df).compute(get=get)

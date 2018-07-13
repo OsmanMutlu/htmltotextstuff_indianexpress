@@ -1,20 +1,20 @@
 #!/bin/sh
 #Takes a full path of the html_dir without slash / charachter at the end
+#Text_dir can be relative to html_dir. It is given without slash / character at the end
 HTML_DIR=$1
+TEXT_DIR=$2
 cd $HTML_DIR
-if [ ! -d ../random_goose_newstext ]; then
- mkdir ../random_goose_newstext
- mkdir ../random_goose_newstext/empties
+if [ ! -d ../$TEXT_DIR ]; then
+ mkdir $TEXT_DIR
+ mkdir $TEXT_DIR/empties
 fi
-for file in http*
-do
- if [ ! -f ../random_goose_newstext/$file ]; then
-#  tmp=$(echo "${file%.cms}.txt")
-  python /ai/work/emw/htmltotextstuff_indianexpress/goose_gettext.py $file
-  python3 /ai/work/emw/htmltotextstuff_indianexpress/deletecertainstr.py ../random_goose_newstext/$file
-  python3 /ai/work/emw/htmltotextstuff_indianexpress/addnewstime.py ../random_goose_newstext/$file
-  python3 /ai/work/emw/htmltotextstuff_indianexpress/addnewslink.py ../random_goose_newstext/$file
-  echo "Finished $file"
- fi
-done
+
+#python /scratch/users/omutlu/htmltotextstuff_indianexpress/goose_gettext.py $TEXT_DIR/
+#echo "Finished boilerplate removal"
+cd $TEXT_DIR
+python3 /scratch/users/omutlu/htmltotextstuff_indianexpress/deletecertainstr.py
+echo "Finished Deleting"
+python3 /scratch/users/omutlu/htmltotextstuff_indianexpress/addnewstime.py $HTML_DIR/
+echo "Finished Adding place and title"
+python3 /scratch/users/omutlu/htmltotextstuff_indianexpress/addnewslink.py
 exit 0

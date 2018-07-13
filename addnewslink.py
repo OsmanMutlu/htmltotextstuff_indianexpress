@@ -1,27 +1,36 @@
-import sys
 import codecs
 import re
-
-filename = sys.argv[1]
-
-try:
-    with codecs.open(filename, "r", "utf-8") as f:
-        lines = f.readlines()
-except IOError:
-    print("This file was empty " + filename)
-    sys.exit()
+from glob import glob
+import pandas as pd
+from dask import dataframe as dd
+from dask.multiprocessing import get
 
 #Adding the news link to the end of file
-match = re.search(r"\/([^\/]*)$", filename)
-if match:
-    link = re.sub(r"__", r"://", match.group(1))
-else:
-    link = re.sub(r"__", r"://", filename)
-link = re.sub(r"_", r"/", link)
 
-lines.append("url : " + link)
+files = glob("http*")
 
-with codecs.open(filename, "w", "utf-8") as f:
-    for line in lines:
-        line = re.sub(r"\n|\r", r"", line)
-        f.write(line + "\n")
+all_df = pd.DataFrame(files, columns=["filename"])
+
+all_df["asd"] = ""
+
+def clean(row):
+
+    try:
+        with codecs.open(row.filename, "r", "utf-8") as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        sys.exit()
+
+    link = re.sub(r"___", r"://", row.filename)
+
+    link = re.sub(r"_", r"/", link)
+    lines.append("url : " + link)
+
+    with codecs.open(row.filename, "w", "utf-8") as f:
+        for line in lines:
+            line = re.sub(r"\n|\r", r"", line)
+            f.write(line + "\n")
+
+    return row
+
+all_df = dd.from_pandas(all_df,npartitions=8).map_partitions(lambda df : df.apply(clean, axis=1),meta=all_df).compute(get=get)
